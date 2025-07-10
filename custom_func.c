@@ -146,6 +146,8 @@ void DF_Flash_blank_check(unsigned short start_addr , unsigned short numbers_of_
 {
     r_fdl_request_t           req;
 
+    DI();
+
     /*
         Blank Check addresses from 0x10 to 0x17.
         myRequest.idx_u32          = 0x10; 
@@ -185,6 +187,8 @@ void DF_Flash_blank_check(unsigned short start_addr , unsigned short numbers_of_
             ;
         #endif
     }
+    
+    EI();
         
     tiny_printf("R_FDL_CMD_BLANKCHECK rdy\r\n");
 }
@@ -196,6 +200,8 @@ void DF_Flash_blank_check(unsigned short start_addr , unsigned short numbers_of_
 void DF_Flash_data_write(unsigned long start_addr , unsigned short numbers_of_words , unsigned long* write_buff)
 {
     r_fdl_request_t           req;
+
+    DI();
 
     req.command_enu     = R_FDL_CMD_WRITE;
     /*    
@@ -229,6 +235,8 @@ void DF_Flash_data_write(unsigned long start_addr , unsigned short numbers_of_wo
             ;
         #endif
     }
+
+    EI();
         
     tiny_printf("R_FDL_CMD_WRITE rdy\r\n");
 }
@@ -240,6 +248,8 @@ void DF_Flash_data_write(unsigned long start_addr , unsigned short numbers_of_wo
 void DF_Flash_data_read(unsigned long start_addr , unsigned short numbers_of_words , unsigned long* read_buff)
 {
     r_fdl_request_t           req;
+
+    DI();
 
     req.command_enu     = R_FDL_CMD_READ;
     /*
@@ -286,6 +296,8 @@ void DF_Flash_data_read(unsigned long start_addr , unsigned short numbers_of_wor
             ;
         #endif
     }
+
+    EI();
         
     tiny_printf("R_FDL_CMD_READ rdy\r\n");
 }
@@ -314,6 +326,8 @@ void DF_Flash_erase(unsigned short number_of_first_block , unsigned short number
 {
     r_fdl_request_t           req;
 
+    DI();
+
     /* -----------------------------------------------------------------------
        Example...
        Erase Flash block 0
@@ -339,6 +353,8 @@ void DF_Flash_erase(unsigned short number_of_first_block , unsigned short number
             ;
         #endif
     }
+
+    EI();
         
     tiny_printf("R_FDL_CMD_ERASE rdy\r\n");
 }
@@ -411,6 +427,8 @@ void DF_Flash_init(void)
     r_fdl_status_t            fdlRet;
     r_fdl_request_t           req;
 
+    DI();
+
     /*****************************************************************************************************************
      * Open the FDL / Data Flash access
      *****************************************************************************************************************/
@@ -465,6 +483,8 @@ void DF_Flash_init(void)
      * Close the FDL / Data Flash access
      *****************************************************************************************************************/
     // FDL_Close ();
+
+    EI();
 }
 
 
