@@ -7,14 +7,7 @@
 #include "custom_func.h"
 #include "retarget.h"
 
-// FDL header files include
-// #define EEELIB_INTDEF
-// #include "r_typedefs.h"
-#include "target.h"
-#include "fdl_user.h"
-#include "r_fdl.h"
-#include "fdl_descriptor.h"
-
+#include "fdl_app.h"
 /*_____ D E C L A R A T I O N S ____________________________________________*/
 
 volatile struct flag_32bit flag_PROJ_CTL;
@@ -62,22 +55,7 @@ volatile UART_MANAGER_T UART0Manager =
 	.g_uart0rxerr = 0U,                                         /* UART0 receive error status */
 };
 
-// data flash , 1 block = 64 bytes = 16 words
-#define DATA_FLASH_BLOCK_SIZE_BYTES                     (64U)
-#define DATA_FLASH_BLOCK_SIZE_WORDS                     (16U)
-#define DATA_FLASH_WORD_SIZE_BYTES                      (4U)
-#define DATA_FLASH_BLOCK_WORDS                          DATA_FLASH_BLOCK_SIZE_WORDS  // alias
-unsigned long rd_buffer[DATA_FLASH_BLOCK_WORDS] = {0};
-unsigned long wr_buffer[DATA_FLASH_BLOCK_WORDS] = {0};
-unsigned long counter = 0;
 
-const unsigned long array[] = 
-{
-  0x5A1EAD72, 0x3B99EA52, 0xA0681756, 0xFEFEB801,
-  0x5B8E3333, 0xBB174F9E, 0xB9C71DF8, 0x7A492502,
-  0x5CF9A33A, 0xD42E717F, 0xB2ED2A92, 0xAF2AF203,
-  0x5D43B5B7, 0x52D6FB3C, 0x51B973CE, 0xEED3D104
-};
 /*_____ M A C R O S ________________________________________________________*/
 
 /*_____ F U N C T I O N S __________________________________________________*/
@@ -145,354 +123,6 @@ void delay_ms(unsigned long ms)
 			break;
     }
 }
-
-void DF_Flash_blank_check(unsigned short start_addr , unsigned short numbers_of_words)
-{
-    r_fdl_request_t           req;
-
-    DI();
-
-    /*
-        Blank Check addresses from 0x10 to 0x17.
-        myRequest.idx_u32          = 0x10; 
-        myRequest.cnt_u16          = 2; 
-    */
-    req.command_enu     = R_FDL_CMD_BLANKCHECK;
-    /*
-        The virtual start address for performing 
-        blank check in data flash. Must be word (4 
-        bytes) aligned
-    */
-    req.idx_u32         = start_addr;
-    /*
-        Number of words (4 bytes) to check
-    */
-    req.cnt_u16         = numbers_of_words;
-    req.accessType_enu  = R_FDL_ACCESS_USER;
-    R_FDL_Execute( &req );
-    
-    while( R_FDL_BUSY == req.status_enu )
-    {
-        R_FDL_Handler();
-    }
-    
-    if( R_FDL_OK != req.status_enu )
-    {   
-        /* 
-            The half word is blank... we may not read 
-            R_FDL_ERR_BLANKCHECK
-        */
-        /* Error handler */
-        #if 1
-        tiny_printf("\r\n>>>>R_FDL_CMD_BLANKCHECK error(0x%02X)\r\n",req.status_enu);
-        return;
-        #else
-        while( 1 )
-            ;
-        #endif
-    }
-    
-    EI();
-        
-    tiny_printf("R_FDL_CMD_BLANKCHECK rdy\r\n");
-}
-
-/*
-    len : 1 words = 4 bytes = uint32_t 
-    write_buff : 32-bit aligned
-*/
-void DF_Flash_data_write(unsigned long start_addr , unsigned short numbers_of_words , unsigned long* write_buff)
-{
-    r_fdl_request_t           req;
-
-    DI();
-
-    req.command_enu     = R_FDL_CMD_WRITE;
-    /*    
-        The virtual start address for writing in Data 
-        Flash aligned to word size (4 bytes). 
-    */
-    req.idx_u32         = start_addr;
-    /*
-        Number of words to write. 
-    */
-    req.cnt_u16         = numbers_of_words;
-    /*
-        Address of the buffer containing the source 
-        data to be written.     
-    */
-    req.bufAddr_u32     = (uint32_t)( &write_buff[0] );
-    req.accessType_enu  = R_FDL_ACCESS_USER;
-    R_FDL_Execute( &req );
-    while( R_FDL_BUSY == req.status_enu )
-    {
-        R_FDL_Handler();
-    }
-    if( R_FDL_OK != req.status_enu )
-    {   
-        /* Error handler */
-        #if 1
-        tiny_printf("\r\n>>>>R_FDL_CMD_WRITE err(0x%02X)\r\n",req.status_enu);
-        return;
-        #else
-        while( 1 )
-            ;
-        #endif
-    }
-
-    EI();
-        
-    tiny_printf("R_FDL_CMD_WRITE rdy\r\n");
-}
-
-/*
-    len : 1 words = 4 bytes = uint32_t 
-    read_buff : 32-bit aligned
-*/
-void DF_Flash_data_read(unsigned long start_addr , unsigned short numbers_of_words , unsigned long* read_buff)
-{
-    r_fdl_request_t           req;
-
-    DI();
-
-    req.command_enu     = R_FDL_CMD_READ;
-    /*
-        Data Flash virtual address from where to 
-        read. Must be word (4 bytes) aligned.     
-    */
-    req.idx_u32         = start_addr;
-    /*
-        Numbers of words (4 bytes) to read
-    */
-    req.cnt_u16         = numbers_of_words;
-    /*
-        Data destination buffer address in RAM. 
-        Note: The buffer must be 32-bit aligned!     
-    */
-    req.bufAddr_u32     = (uint32_t)( &read_buff[0] );
-    req.accessType_enu  = R_FDL_ACCESS_USER;
-    R_FDL_Execute( &req );
-    while( R_FDL_BUSY == req.status_enu )
-    {
-        R_FDL_Handler();
-    }
-    if( R_FDL_OK != req.status_enu )
-    {   
-        /* Error handler */
-        #if 1
-        if (R_FDL_ERR_ECC_SED == req.status_enu)
-        {
-            tiny_printf("\r\n>>>>R_FDL_CMD_READ error-single bit ECC error(0x%02X)\r\n",req.status_enu);
-            
-        }
-        else if (R_FDL_ERR_ECC_DED == req.status_enu)
-        {
-            tiny_printf("\r\n>>>>R_FDL_CMD_READ error-double bit ECC error(0x%02X)\r\n",req.status_enu);            
-        }
-        else
-        {
-            tiny_printf("\r\n>>>>R_FDL_CMD_READ error(0x%02X)\r\n",req.status_enu);
-        }
-
-        return;
-        #else
-        while( 1 )
-            ;
-        #endif
-    }
-
-    EI();
-        
-    tiny_printf("R_FDL_CMD_READ rdy\r\n");
-}
-
-/*
-    RH850/F1KM-S1 Data Flash Memory Size 64 KB , 
-
-    check [Mapping of the Data Flash Memory] in hardware manual
-    total 1024 blocks , 1 block = 64 bytes
-
-    FF20 FFFF H
-    FF20 FFC0 H     Block 1023 (64 bytes)
-    ...
-    FF20 803F H
-    FF20 8000 H     Block 512 (64 bytes)
-    FF20 7FFF H
-    FF20 7FC0 H     Block 511 (64 bytes)
-    ...
-    FF20 007F H
-    FF20 0040 H     Block 1 (64 bytes)
-    FF20 003F H
-    FF20 0000 H     Block 0 (64 bytes)
-*/
-
-void DF_Flash_erase(unsigned short number_of_first_block , unsigned short numbers_of_blocks)
-{
-    r_fdl_request_t           req;
-
-    DI();
-
-    /* -----------------------------------------------------------------------
-       Example...
-       Erase Flash block 0
-       ----------------------------------------------------------------------- */   
-    req.command_enu     = R_FDL_CMD_ERASE;
-    req.idx_u32         = number_of_first_block;    // from block xx 
-    req.cnt_u16         = numbers_of_blocks;        // how many blocks
-    req.accessType_enu  = R_FDL_ACCESS_USER;
-    R_FDL_Execute( &req );
-    
-    while( R_FDL_BUSY == req.status_enu )
-    {
-        R_FDL_Handler();
-    }
-    if( R_FDL_OK != req.status_enu )
-    {   
-        /* Error handler */
-        #if 1
-        tiny_printf("\r\n>>>>R_FDL_CMD_ERASE err(0x%02X)\r\n",req.status_enu);
-        return;
-        #else
-        while( 1 )
-            ;
-        #endif
-    }
-
-    EI();
-        
-    tiny_printf("R_FDL_CMD_ERASE rdy\r\n");
-}
-
-void DF_Flash_process(void)
-{
-    unsigned char i = 0;
-    unsigned short start_address = 0;
-
-    if (FLAG_PROJ_TRIG_4)   // data block 2 write array
-    {
-        start_address = 0x40;
-        reset_buffer(rd_buffer,0x00,DATA_FLASH_BLOCK_WORDS);
-
-        DF_Flash_erase(1,1);
-        DF_Flash_blank_check(start_address,DATA_FLASH_BLOCK_WORDS);
-        DF_Flash_data_write(start_address,DATA_FLASH_BLOCK_WORDS,(unsigned long *)array);
-        DF_Flash_data_read(start_address,DATA_FLASH_BLOCK_WORDS,(unsigned long *)&rd_buffer);
-        compare_buffer(array,rd_buffer,DATA_FLASH_BLOCK_WORDS);
-        dump_buffer32(rd_buffer,DATA_FLASH_BLOCK_WORDS);
-
-        FLAG_PROJ_TRIG_4 = 0;
-    }
-    if (FLAG_PROJ_TRIG_3)   // data block 1 write ram buffer
-    {
-        for(i = 0;i < DATA_FLASH_BLOCK_WORDS;i++)
-        {
-            wr_buffer[i] = 0x1FFF7000 + i + counter;
-        }
-        
-        start_address = 0x00;
-        reset_buffer(rd_buffer,0x00,DATA_FLASH_BLOCK_WORDS);
-
-        DF_Flash_erase(0,1);
-        DF_Flash_blank_check(start_address,DATA_FLASH_BLOCK_WORDS);
-        DF_Flash_data_write(start_address,DATA_FLASH_BLOCK_WORDS,(unsigned long *)&wr_buffer);
-        DF_Flash_data_read(start_address,DATA_FLASH_BLOCK_WORDS,(unsigned long *)&rd_buffer);
-        compare_buffer(wr_buffer,rd_buffer,DATA_FLASH_BLOCK_WORDS);
-        dump_buffer32(rd_buffer,DATA_FLASH_BLOCK_WORDS);
-
-        FLAG_PROJ_TRIG_3 = 0;
-        counter += 0x100;
-    }
-    if (FLAG_PROJ_TRIG_2)   // read block 0 ~ 1
-    {
-        start_address = 0x00;
-        reset_buffer(rd_buffer,0x00,DATA_FLASH_BLOCK_WORDS);
-
-        DF_Flash_data_read(start_address,DATA_FLASH_BLOCK_WORDS,(unsigned long *)&rd_buffer);
-        tiny_printf("block 0\r\n");
-        dump_buffer32(rd_buffer,DATA_FLASH_BLOCK_WORDS);
-
-        start_address = 0x40;
-        reset_buffer(rd_buffer,0x00,DATA_FLASH_BLOCK_WORDS);
-
-        DF_Flash_data_read(start_address,DATA_FLASH_BLOCK_WORDS,(unsigned long *)&rd_buffer);
-        tiny_printf("block 1\r\n");
-        dump_buffer32(rd_buffer,DATA_FLASH_BLOCK_WORDS);
-
-        FLAG_PROJ_TRIG_2 = 0;
-    }
-    if (FLAG_PROJ_TRIG_1)   // erase 0 ~ 31
-    {
-        DF_Flash_erase(0,32);
-        DF_Flash_blank_check(start_address,DATA_FLASH_BLOCK_WORDS*32);
-        FLAG_PROJ_TRIG_1 = 0;
-    }
-}
-
-void DF_Flash_init(void)
-{
-    r_fdl_status_t            fdlRet;
-    r_fdl_request_t           req;
-
-    DI();
-
-    /*****************************************************************************************************************
-     * Open the FDL / Data Flash access
-     *****************************************************************************************************************/
-    /* Initialize the data FLash is required to be able to access the data Flash. As this is considered to be a user
-       function, it is not part of the libraries, but part of the application sample */
-    FDL_Open ();
-
-    /* 1st initialize the FDL */
-    fdlRet = R_FDL_Init( &sampleApp_fdlConfig_enu );
-    if( R_FDL_OK != fdlRet )
-    {   
-        /* Error handler */
-        #if 1
-        tiny_printf("\r\n>>>>R_FDL_Init err(0x%02X)\r\n",fdlRet);
-        return;
-        #else
-        while( 1 )
-            ;
-        #endif
-    }
-        
-    tiny_printf("R_FDL_Init rdy\r\n");
-
-    #ifndef R_FDL_LIB_V1_COMPATIBILITY
-        /* Prepare the environment */
-        req.command_enu     = R_FDL_CMD_PREPARE_ENV;
-        req.idx_u32         = 0;
-        req.cnt_u16         = 0;
-        req.accessType_enu  = R_FDL_ACCESS_NONE;
-        R_FDL_Execute( &req );
-        
-        while( R_FDL_BUSY == req.status_enu )
-        {
-            R_FDL_Handler();
-        }
-        if( R_FDL_OK != req.status_enu )
-        {   
-            /* Error handler */
-            #if 1
-            tiny_printf("\r\n>>>>R_FDL_CMD_PREPARE_ENV err(0x%02X)\r\n",req.status_enu);
-            return;
-            #else
-            while( 1 )
-                ;
-            #endif
-        }
-        
-        tiny_printf("R_FDL_CMD_PREPARE_ENV rdy\r\n");
-    #endif
-
-    /*****************************************************************************************************************
-     * Close the FDL / Data Flash access
-     *****************************************************************************************************************/
-    // FDL_Close ();
-
-    EI();
-}
-
 
 unsigned char R_PORT_GetGPIOLevel(unsigned short n,unsigned char Pin)
 {
@@ -587,7 +217,27 @@ void loop(void)
         FLAG_PROJ_TIMER_PERIOD_SPECIFIC = 0U;
     }
 
-    DF_Flash_process();
+    if (FLAG_PROJ_TRIG_4)
+    {
+        DF_Flash_test_process(4);
+        FLAG_PROJ_TRIG_4 = 0U;
+    }
+    if (FLAG_PROJ_TRIG_3)
+    {
+        DF_Flash_test_process(3);
+        FLAG_PROJ_TRIG_3 = 0U;
+    }
+    if (FLAG_PROJ_TRIG_2)
+    {
+        DF_Flash_test_process(2);
+        FLAG_PROJ_TRIG_2 = 0U;
+    }
+    if (FLAG_PROJ_TRIG_1)
+    {
+        DF_Flash_test_process(1);
+        FLAG_PROJ_TRIG_1 = 0U;
+    }
+    
 }
 
 void UARTx_ErrorCheckProcess(unsigned char err)

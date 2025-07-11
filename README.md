@@ -30,13 +30,36 @@ update @ 2025/07/10
  
 2. below is log message :
 
+FDL init
+
+![image](https://github.com/released/Sample_Project_RH850_S1_Data_Flash/blob/main/log_init.jpg)
+
+
+test flow , 
+
 press 1 : to erase data flash
+
+	- flow : check block blank > if blank , skip erase > if not blank , execute erase and check blank again
+
+![image](https://github.com/released/Sample_Project_RH850_S1_Data_Flash/blob/main/log_erase.jpg)
+
 
 press 3 : write buffer to data flash , modify value with counter 
 
+	- flow : erase > write > read > compare
+
+![image](https://github.com/released/Sample_Project_RH850_S1_Data_Flash/blob/main/log_write1.jpg)
+
+
 press 4 : write const data to data flash 
+
+	- flow : erase > write > read > compare
+	
+![image](https://github.com/released/Sample_Project_RH850_S1_Data_Flash/blob/main/log_write2.jpg)
+
 
 press 2 : to read data flash
 
-![image](https://github.com/released/Sample_Project_RH850_S1_Data_Flash/blob/main/digit_1.jpg)
+![image](https://github.com/released/Sample_Project_RH850_S1_Data_Flash/blob/main/log_read.jpg)
+
 

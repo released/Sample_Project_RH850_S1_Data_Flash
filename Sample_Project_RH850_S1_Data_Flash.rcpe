@@ -69,6 +69,7 @@
         <Path>FDL_user\fdl_descriptor.c</Path>
         <Path>FDL_user\fdl_user.c</Path>
       </Category>
+      <Path>fdl_app.c</Path>
     </Files>
     <DebugOptions>
       <ConnectSettings>
@@ -106,6 +107,7 @@
           <Path>DefaultBuild\r_fdl_user_if_init.obj</Path>
           <Path>DefaultBuild\fdl_descriptor.obj</Path>
           <Path>DefaultBuild\fdl_user.obj</Path>
+          <Path>DefaultBuild\fdl_app.obj</Path>
         </LinkOrder>
         <CommonOptions>
           <IncludePathForC>FDL_user</IncludePathForC>
