@@ -35,37 +35,15 @@ volatile unsigned char _sys_uTimerEventCount = 0;             /* Speed up interr
 
 /*_____ F U N C T I O N S __________________________________________________*/
 
-void compare_buffer(unsigned char *src, unsigned char *des, int nBytes)
+int compare_buffer(const void *src, const void *dest, size_t nBytes)
 {
-    unsigned short  i = 0;	
-	
-    #if 1
-    for (i = 0; i < nBytes; i++)
-    {
-        if (src[i] != des[i])
-        {
-            dbg_printf("error idx : %4d : 0x%2X , 0x%2X\r\n", i , src[i],des[i]);
-			FLAG_MISC_ERROR = 1;//set_flag(flag_error , ENABLE);
-        }
+    if (memcmp(src, dest, nBytes) == 0) {
+        dbg_printf("compare_buffer complete\r\n");
+        return 0;
     }
 
-	if (!FLAG_MISC_ERROR)//(!is_flag_set(flag_error))
-	{
-    	dbg_printf("compare_buffer complete \r\n");	
-	}
-
-    dbg_printf("compare_buffer end \r\n");
-	FLAG_MISC_ERROR = 0;//set_flag(flag_error , DISABLE);	    
-    #else
-    if (memcmp(src, des, nBytes))
-    {
-        dbg_printf("\nMismatch!! - %d\n", nBytes);
-        for (i = 0; i < nBytes; i++)
-            dbg_printf("0x%02x    0x%02x\n", src[i], des[i]);
-        return -1;
-    }
-    #endif
-
+    dbg_printf("Mismatch!! - %zu bytes\r\n", nBytes);
+    return 1;
 }
 
 void reset_buffer(void *dest, unsigned long val, unsigned long size)
@@ -116,7 +94,7 @@ void dump_buffer32(unsigned long *pucBuff, int nBytes)
             dbg_printf("\r\n");
         }            
     }
-    dbg_printf("\r\n\r\n");
+    dbg_printf("\r\n");
 }
 
 void dump_buffer32_hex(unsigned long *pucBuff, int nBytes)

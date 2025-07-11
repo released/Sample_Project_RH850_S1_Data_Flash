@@ -63,8 +63,12 @@ volatile UART_MANAGER_T UART0Manager =
 };
 
 // data flash , 1 block = 64 bytes = 16 words
-unsigned long rd_buffer[16] = {0};
-unsigned long wr_buffer[16] = {0};
+#define DATA_FLASH_BLOCK_SIZE_BYTES                     (64U)
+#define DATA_FLASH_BLOCK_SIZE_WORDS                     (16U)
+#define DATA_FLASH_WORD_SIZE_BYTES                      (4U)
+#define DATA_FLASH_BLOCK_WORDS                          DATA_FLASH_BLOCK_SIZE_WORDS  // alias
+unsigned long rd_buffer[DATA_FLASH_BLOCK_WORDS] = {0};
+unsigned long wr_buffer[DATA_FLASH_BLOCK_WORDS] = {0};
 unsigned long counter = 0;
 
 const unsigned long array[] = 
@@ -367,31 +371,33 @@ void DF_Flash_process(void)
     if (FLAG_PROJ_TRIG_4)   // data block 2 write array
     {
         start_address = 0x40;
-        reset_buffer(rd_buffer,0x00,16);
+        reset_buffer(rd_buffer,0x00,DATA_FLASH_BLOCK_WORDS);
 
         DF_Flash_erase(1,1);
-        DF_Flash_blank_check(start_address,16);
-        DF_Flash_data_write(start_address,16,(unsigned long *)array);
-        DF_Flash_data_read(start_address,16,(unsigned long *)&rd_buffer);
-        dump_buffer32(rd_buffer,16);
+        DF_Flash_blank_check(start_address,DATA_FLASH_BLOCK_WORDS);
+        DF_Flash_data_write(start_address,DATA_FLASH_BLOCK_WORDS,(unsigned long *)array);
+        DF_Flash_data_read(start_address,DATA_FLASH_BLOCK_WORDS,(unsigned long *)&rd_buffer);
+        compare_buffer(array,rd_buffer,DATA_FLASH_BLOCK_WORDS);
+        dump_buffer32(rd_buffer,DATA_FLASH_BLOCK_WORDS);
 
         FLAG_PROJ_TRIG_4 = 0;
     }
     if (FLAG_PROJ_TRIG_3)   // data block 1 write ram buffer
     {
-        for(i = 0;i<16;i++)
+        for(i = 0;i < DATA_FLASH_BLOCK_WORDS;i++)
         {
             wr_buffer[i] = 0x1FFF7000 + i + counter;
         }
         
         start_address = 0x00;
-        reset_buffer(rd_buffer,0x00,16);
+        reset_buffer(rd_buffer,0x00,DATA_FLASH_BLOCK_WORDS);
 
         DF_Flash_erase(0,1);
-        DF_Flash_blank_check(start_address,16);
-        DF_Flash_data_write(start_address,16,(unsigned long *)&wr_buffer);
-        DF_Flash_data_read(start_address,16,(unsigned long *)&rd_buffer);
-        dump_buffer32(rd_buffer,16);
+        DF_Flash_blank_check(start_address,DATA_FLASH_BLOCK_WORDS);
+        DF_Flash_data_write(start_address,DATA_FLASH_BLOCK_WORDS,(unsigned long *)&wr_buffer);
+        DF_Flash_data_read(start_address,DATA_FLASH_BLOCK_WORDS,(unsigned long *)&rd_buffer);
+        compare_buffer(wr_buffer,rd_buffer,DATA_FLASH_BLOCK_WORDS);
+        dump_buffer32(rd_buffer,DATA_FLASH_BLOCK_WORDS);
 
         FLAG_PROJ_TRIG_3 = 0;
         counter += 0x100;
@@ -399,25 +405,25 @@ void DF_Flash_process(void)
     if (FLAG_PROJ_TRIG_2)   // read block 0 ~ 1
     {
         start_address = 0x00;
-        reset_buffer(rd_buffer,0x00,16);
+        reset_buffer(rd_buffer,0x00,DATA_FLASH_BLOCK_WORDS);
 
-        DF_Flash_data_read(start_address,16,(unsigned long *)&rd_buffer);
+        DF_Flash_data_read(start_address,DATA_FLASH_BLOCK_WORDS,(unsigned long *)&rd_buffer);
         tiny_printf("block 0\r\n");
-        dump_buffer32(rd_buffer,16);
+        dump_buffer32(rd_buffer,DATA_FLASH_BLOCK_WORDS);
 
         start_address = 0x40;
-        reset_buffer(rd_buffer,0x00,16);
+        reset_buffer(rd_buffer,0x00,DATA_FLASH_BLOCK_WORDS);
 
-        DF_Flash_data_read(start_address,16,(unsigned long *)&rd_buffer);
+        DF_Flash_data_read(start_address,DATA_FLASH_BLOCK_WORDS,(unsigned long *)&rd_buffer);
         tiny_printf("block 1\r\n");
-        dump_buffer32(rd_buffer,16);
+        dump_buffer32(rd_buffer,DATA_FLASH_BLOCK_WORDS);
 
         FLAG_PROJ_TRIG_2 = 0;
     }
     if (FLAG_PROJ_TRIG_1)   // erase 0 ~ 31
     {
         DF_Flash_erase(0,32);
-        DF_Flash_blank_check(start_address,16*32);
+        DF_Flash_blank_check(start_address,DATA_FLASH_BLOCK_WORDS*32);
         FLAG_PROJ_TRIG_1 = 0;
     }
 }

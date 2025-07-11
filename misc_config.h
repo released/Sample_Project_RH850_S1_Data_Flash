@@ -171,7 +171,7 @@ struct flag_32bit
 #endif
 
 /*_____ F U N C T I O N S __________________________________________________*/
-void compare_buffer(unsigned char *src, unsigned char *des, int nBytes);
+int compare_buffer(const void *src, const void *dest, size_t nBytes);
 void reset_buffer(void *dest, unsigned long val, unsigned long size);
 void copy_buffer(void *dest, void *src, unsigned long size);
 void dump_buffer32(unsigned long *pucBuff, int nBytes);
